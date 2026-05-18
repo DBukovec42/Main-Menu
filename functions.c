@@ -6,18 +6,62 @@ void clearBuffer(void) {
 	while ((c = getchar()) != '\n' && c != EOF);
 }
 
-// USER CREATION
-static bool createUser(USER* user) {
-	printf("\nUSER CREATION\n");
-	printf("Choose a new username (or type exit to go back): ");
-	scanf("%19s", user->username);
+// USERNAME TAKEN
+static bool usernameTaken(const char* username) {
+	FILE* file = fopen(USER_FILE, "r");
 
-	if (strcmp(user->username, "exit") == 0) {
+	if (!file) {
 		return false;
 	}
 
+	char existing_username[20];
+	bool taken = fscanf(file, "%19s", existing_username) == 1 && strcmp(existing_username, username) == 0;
+	fclose(file);
+
+	return taken;
+}
+
+// USER CREATION
+static bool createUser(USER* user) {
+	freeUser(user);
+	char user_input[20];
+	printf("\nUSER CREATION\n");
+
+	while (1) {
+		printf("Choose a new username (or type exit to go back): ");
+		scanf("%19s", user_input);
+
+		if (strcmp(user_input, "exit") == 0) {
+			return false;
+		}
+
+		if (usernameTaken(user_input)) {
+			printf("User with that username already exists.\n\n");
+			continue;
+		}
+		break;
+	}
+
+	user->username = malloc(strlen(user_input) + 1);
+
+	if (!user->username) {
+		printf("Memory allocation failed.\n");
+		return false;
+	}
+	strcpy(user->username, user_input);
+
 	printf("Choose a new password: ");
-	scanf("%19s", user->password);
+	scanf("%19s", user_input);
+
+	user->password = malloc(strlen(user_input) + 1);
+
+	if (!user->password) {
+		printf("Memory allocation failed.\n");
+		free(user->username);
+		user->username = NULL;
+		return false;
+	}
+	strcpy(user->password, user_input);
 
 	return true;
 }
@@ -43,15 +87,43 @@ static bool saveUser(const USER* user) {
 
 // LOAD USER
 static bool loadUser(USER* user) {
+	freeUser(user);
 	FILE* file = fopen(USER_FILE, "r");
 
 	if (!file) {
 		return false;
 	}
 
-	bool success = fscanf(file, "%19s", user->username) == 1 && fscanf(file, "%19s", user->password) == 1;
+	char user_input[20];
+
+	if (fscanf(file, "%19s", user_input) != 1) {
+		fclose(file); return false;
+	}
+	user->username = malloc(strlen(user_input) + 1);
+
+	if (!user->username) { 
+		fclose(file); return false;
+	}
+	strcpy(user->username, user_input);
+
+	if (fscanf(file, "%19s", user_input) != 1) {
+		fclose(file);
+		free(user->username);
+		user->username = NULL;
+		return false;
+	}
+	user->password = malloc(strlen(user_input) + 1);
+
+	if (!user->password) {
+		fclose(file);
+		free(user->username);
+		user->username = NULL;
+		return false;
+	}
+	strcpy(user->password, user_input);
+
 	fclose(file);
-	return success;
+	return true;
 }
 
 // LOG IN
@@ -76,6 +148,14 @@ int loginUser(const USER* user) {
 		printf("Incorrect username or password.\n");
 		return 0;
 	}
+}
+
+// CLEANUP
+void freeUser(USER* user) {
+	free(user->username);
+	free(user->password);
+	user->username = NULL;
+	user->password = NULL;
 }
 
 // STARTUP MENU
@@ -132,6 +212,26 @@ static const char* displayModeToString(DISPLAY display) {
 	return "Unknown";
 }
 
+// RESOLUTION TO STRING
+static const char* resolutionToString(RESOLUTION resolution) {
+	static const char* const resolutions[] = { "640x480", "1280x720", "1920x1080" };
+
+	if (resolution >= RESOLUTION_640X480 && resolution <= RESOLUTION_1920X1080) {
+		return resolutions[resolution];
+	}
+	return "Unknown";
+}
+
+// FRAME RATE LIMIT TO STRING
+static const char* frlToString(FRL frl) {
+	static const char* const frame_rate_limit[] = { "30", "60", "120", "Unlimited" };
+
+	if (frl >= FRL_30 && frl <= FRL_UNLIMITED) {
+		return frame_rate_limit[frl];
+	}
+	return "Unknown";
+}
+
 // DIFFICULTY TO STRING
 static const char* difficultyToString(DIFFICULTY difficulty) {
 	static const char* const difficulties[] = { "Easy", "Normal", "Hard", "Insane" };
@@ -166,7 +266,7 @@ void gameSettingsMenu(GAME_SETTINGS* settings) {
 		case 1: {
 			int temp_volume;
 			while (1) {
-				printf("\nVolume settings\n");
+				printf("\nVOLUME SETTINGS\n");
 				printf("Current volume: %d\n", settings->volume);
 				printf("Enter desired volume [1-10]: ");
 
@@ -190,7 +290,7 @@ void gameSettingsMenu(GAME_SETTINGS* settings) {
 		case 2: {
 			int temp_graphics;
 			while (1) {
-				printf("\nGraphics settings\n");
+				printf("\nGRAPHICS SETTINGS\n");
 				printf("Current graphics: %s\n", graphicsToString(settings->graphics));
 				printf("1. Low\n");
 				printf("2. Medium\n");
@@ -217,7 +317,7 @@ void gameSettingsMenu(GAME_SETTINGS* settings) {
 		case 3: {
 			int temp_display_mode;
 			while (1) {
-				printf("\nDisplay mode settings\n");
+				printf("\nDISPLAY MODE SETTINGS\n");
 				printf("Current display mode: %s\n", displayModeToString(settings->display_mode));
 				printf("1. Fullscreen\n");
 				printf("2. Windowed\n");
@@ -242,17 +342,64 @@ void gameSettingsMenu(GAME_SETTINGS* settings) {
 			break;
 		}
 		case 4: {
-			printf("\nResolution settings\n");
+			int temp_resolution;
+			while (1) {
+				printf("\nRESOLUTION SETTINGS\n");
+				printf("Current resolution: %s\n", resolutionToString(settings->resolution));
+				printf("1. 640x480\n");
+				printf("2. 1280x720\n");
+				printf("3. 1920x1080\n");
+				printf("Choose: ");
+
+				if (scanf("%d", &temp_resolution) != 1) {
+					printf("Enter a valid number.\n");
+					clearBuffer();
+					continue;
+				}
+
+				if (temp_resolution < 1 || temp_resolution > 3) {
+					printf("Enter a valid number.\n");
+				}
+				else {
+					settings->resolution = (RESOLUTION)(temp_resolution - 1);
+					printf("Resolution set to: %s\n", resolutionToString(settings->resolution));
+					break;
+				}
+			}
 			break;
 		}
 		case 5: {
-			printf("\nFrame rate limit settings\n");
+			int temp_frl;
+			while (1) {
+				printf("\nFRAME RATE LIMIT SETTINGS\n");
+				printf("Current frame rate limit: %s\n", frlToString(settings->frame_rate_limit));
+				printf("1. 30\n");
+				printf("2. 60\n");
+				printf("3. 120\n");
+				printf("4. Unlimited\n");
+				printf("Choose: ");
+
+				if (scanf("%d", &temp_frl) != 1) {
+					printf("Enter a valid number.\n");
+					clearBuffer();
+					continue;
+				}
+
+				if (temp_frl < 1 || temp_frl > 4) {
+					printf("Enter a valid number.\n");
+				}
+				else {
+					settings->frame_rate_limit = (FRL)(temp_frl - 1);
+					printf("Frame rate limit set to: %s\n", frlToString(settings->frame_rate_limit));
+					break;
+				}
+			}
 			break;
 		}
 		case 6: {
 			int temp_difficulty;
 			while (1) {
-				printf("\nDifficulty settings\n");
+				printf("\nDIFFICULTY SETTINGS\n");
 				printf("Current difficulty: %s\n", difficultyToString(settings->difficulty));
 				printf("1. Easy\n");
 				printf("2. Normal\n");
@@ -294,8 +441,8 @@ GAME_SETTINGS defaultGameSettings(void) {
 		.volume = 1,
 		.graphics = GRAPHICS_LOW,
 		.display_mode = DISPLAY_FULLSCREEN,
-		.resolution = 0,
-		.frame_rate_limit = 0,
+		.resolution = RESOLUTION_640X480,
+		.frame_rate_limit = FRL_30,
 		.difficulty = DIFFICULTY_EASY
 	};
 }
@@ -308,6 +455,7 @@ void exitProgram(void) {
 	scanf("%9s", exit_choice);
 
 	if (strcmp(exit_choice, "yes") == 0) {
+		freeUser(&player);
 		printf("Exit successful. Goodbye!\n");
 		exit(0);
 	}

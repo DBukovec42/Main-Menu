@@ -1,9 +1,13 @@
 #include "header.h"
 
+USER player;
+GAME_SETTINGS settings;
+
 int main(void) {
 
-	USER player;
-	GAME_SETTINGS settings = defaultGameSettings();
+	player.username = NULL;
+	player.password = NULL;
+	settings = defaultGameSettings();
 
 	while (1) {
 		startupMenu(&player);
@@ -36,17 +40,17 @@ int main(void) {
 		}
 
 		switch (menu_choice) {
-		case 1: {
+		case SETTINGS_USER: {
 			printf("\nUSER SETTINGS\n");
 			break;
 		}
 
-		case 2: {
+		case SETTINGS_GAME: {
 			gameSettingsMenu(&settings);
 			break;
 		}
 
-		case 3: {
+		case EXIT: {
 			exitProgram();
 			break;
 		}
