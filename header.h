@@ -8,15 +8,15 @@
 #include <stdbool.h>
 #define USER_FILE "user.txt"
 
-typedef struct {
-	char* username;
-	char* password;
-} USER;
+typedef enum {
+	SORT_BY_ID = 0,
+	SORT_BY_USERNAME
+} SORT_ORDER;
 
 typedef enum {
 	SETTINGS_USER = 1,
 	SETTINGS_GAME,
-	EXIT
+	EXIT_MENU
 } MENU;
 
 typedef enum {
@@ -60,13 +60,34 @@ typedef struct {
 	DIFFICULTY difficulty;
 } GAME_SETTINGS;
 
-extern USER player;
-extern GAME_SETTINGS settings;
+typedef struct {
+	int id;
+	char* username;
+	char* password;
+	GAME_SETTINGS game_settings;
+} USER;
 
-void clearBuffer(void);
-int loginUser(const USER* user);
+typedef struct {
+	int id;
+	char username[20];
+} ENTRY;
+
+// BUFFER CLEAR
+static inline void clearBuffer(void) {
+	int c;
+	while ((c = getchar()) != '\n' && c != EOF);
+}
+
+extern USER player;
+extern SORT_ORDER current_sort;
+
+void runLogin(void);
+int loginUser(USER* user);
 void startupMenu(USER* user);
 void freeUser(USER* user);
-void gameSettingsMenu(GAME_SETTINGS* settings);
+bool userSettingsMenu(void);
+void sortUsers(void);
+void gameSettingsMenu(GAME_SETTINGS* game_settings);
 GAME_SETTINGS defaultGameSettings(void);
+bool saveUserSettings(const USER* user);
 void exitProgram(void);

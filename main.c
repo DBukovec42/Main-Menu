@@ -1,62 +1,51 @@
 #include "header.h"
 
 USER player;
-GAME_SETTINGS settings;
+SORT_ORDER current_sort = SORT_BY_ID;
 
 int main(void) {
 
-	player.username = NULL;
-	player.password = NULL;
-	settings = defaultGameSettings();
-
-	while (1) {
-		startupMenu(&player);
-		int login_choice;
-		do {
-			login_choice = loginUser(&player);
-		} while (login_choice == 0);
-
-		if (login_choice == 1) {
-			break;
-		}
-	}
-
-	// MAIN MENU
-
-	int menu_choice;
-
 	while (1) {
 
-		printf("\nMAIN MENU\n");
-		printf("1. User settings\n");
-		printf("2. Game settings\n");
-		printf("3. Exit\n");
-		printf("Choose: ");
+		runLogin();
 
-		if (scanf("%d", &menu_choice) != 1) {
-			printf("Enter a valid number.\n");
-			clearBuffer();
-			continue;
-		}
+		bool logged_out = false;
 
-		switch (menu_choice) {
-		case SETTINGS_USER: {
-			printf("\nUSER SETTINGS\n");
-			break;
-		}
+		while (!logged_out) {
+			int menu_choice;
 
-		case SETTINGS_GAME: {
-			gameSettingsMenu(&settings);
-			break;
-		}
+			printf("\nMAIN MENU\n");
+			printf("1. User Settings\n");
+			printf("2. Game Settings\n");
+			printf("3. Exit\n");
+			printf("Choose: ");
 
-		case EXIT: {
-			exitProgram();
-			break;
-		}
-		default: {
-			printf("Enter a valid number.\n");
-			break;
+			if (scanf("%d", &menu_choice) != 1) {
+				printf("Enter a valid number.\n");
+				clearBuffer();
+				continue;
+			}
+
+			switch (menu_choice) {
+			case SETTINGS_USER: {
+				logged_out = userSettingsMenu();
+				break;
+			}
+
+			case SETTINGS_GAME: {
+				gameSettingsMenu(&player.game_settings);
+				saveUserSettings(&player);
+				break;
+			}
+
+			case EXIT_MENU: {
+				exitProgram();
+				break;
+			}
+			default: {
+				printf("Enter a valid number.\n");
+				break;
+			}
 			}
 		}
 	}
