@@ -150,7 +150,7 @@ bool saveUserSettings(const USER* user) {
 		return false;
 	}
 
-	FILE* temp = fopen("temp.txt", "w");
+	FILE* temp = fopen(TEMP_FILE, "w");
 
 	if (!temp) {
 		fclose(file);
@@ -185,7 +185,7 @@ bool saveUserSettings(const USER* user) {
 	fclose(file);
 	fclose(temp);
 
-	if (remove(USER_FILE) != 0 || rename("temp.txt", USER_FILE) != 0) {
+	if (remove(USER_FILE) != 0 || rename(TEMP_FILE, USER_FILE) != 0) {
 		printf("Failed to update user file.\n");
 		return false;
 	}
@@ -304,9 +304,13 @@ void startupMenu(USER* user) {
 		}
 
 		else if (startup_choice == 2) {
-			if (createUser(user) && saveUser(user)) {
-				printf("New user successfully created!\n");
-				continue;
+			if (createUser(user)) {
+				if (saveUser(user)) {
+					printf("New user successfully created!\n");
+				}
+				else {
+					freeUser(user);
+				}
 			}
 		}
 		else {
@@ -609,7 +613,7 @@ static bool deleteUser(void) {
 			return false;
 		}
 
-		FILE* temp = fopen("temp.txt", "w");
+		FILE* temp = fopen(TEMP_FILE, "w");
 
 		if (!temp) {
 			fclose(file);
@@ -628,7 +632,7 @@ static bool deleteUser(void) {
 		fclose(file);
 		fclose(temp);
 
-		if (remove(USER_FILE) != 0 || rename("temp.txt", USER_FILE) != 0) {
+		if (remove(USER_FILE) != 0 || rename(TEMP_FILE, USER_FILE) != 0) {
 			printf("Failed to delete user.\n");
 			return false;
 		}

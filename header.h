@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 #define USER_FILE "user.txt"
+#define TEMP_FILE "temp.txt"
 
 typedef enum {
 	SORT_BY_ID = 0,
