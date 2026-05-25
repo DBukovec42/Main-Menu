@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <math.h>
 #include <stdbool.h>
 #define USER_FILE "user.txt"
 
@@ -64,6 +62,7 @@ typedef struct {
 	int id;
 	char* username;
 	char* password;
+	SORT_ORDER sort_order;
 	GAME_SETTINGS game_settings;
 } USER;
 

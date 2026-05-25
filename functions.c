@@ -26,9 +26,9 @@ static bool usernameTaken(const char* username) {
 
 	char existing_username[20];
 	char existing_password[20];
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 
-	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, existing_username, existing_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, existing_username, existing_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 		if (strcmp(existing_username, username) == 0) {
 			fclose(file);
 			return true;
@@ -49,10 +49,10 @@ static int userId(void) {
 	}
 
 	int max_id = 0;
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 	char file_username[20], file_password[20];
 
-	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 		if (id > max_id) max_id = id;
 	}
 
@@ -105,6 +105,7 @@ static bool createUser(USER* user) {
 	strcpy(user->password, user_input);
 
 	user->id = userId();
+	user->sort_order = SORT_BY_ID;
 	user->game_settings = defaultGameSettings();
 
 	return true;
@@ -115,11 +116,11 @@ static bool saveUser(const USER* user) {
 	FILE* file = fopen(USER_FILE, "a");
 
 	if (!file) {
-		printf("Could not open file.\n");
+		perror("fopen");
 		return false;
 	}
 
-	bool success = fprintf(file, "%d %s %s %d %d %d %d %d %d\n",
+	bool success = fprintf(file, "%d %s %s %d %d %d %d %d %d %d\n",
 		user->id,
 		user->username,
 		user->password,
@@ -128,7 +129,8 @@ static bool saveUser(const USER* user) {
 		(int)user->game_settings.display_mode,
 		(int)user->game_settings.resolution,
 		(int)user->game_settings.frame_rate_limit,
-		(int)user->game_settings.difficulty) > 0;
+		(int)user->game_settings.difficulty,
+		(int)user->sort_order) > 0;
 
 	fclose(file);
 
@@ -144,7 +146,7 @@ bool saveUserSettings(const USER* user) {
 	FILE* file = fopen(USER_FILE, "r");
 
 	if (!file) {
-		printf("Could not open file.\n");
+		perror("fopen");
 		return false;
 	}
 
@@ -152,18 +154,18 @@ bool saveUserSettings(const USER* user) {
 
 	if (!temp) {
 		fclose(file);
-		printf("Could not open temp file.\n");
+		perror("fopen");
 		return false;
 	}
 
 	char file_username[20];
 	char file_password[20];
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 
-	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 
 		if (strcmp(file_username, user->username) == 0) {
-			fprintf(temp, "%d %s %s %d %d %d %d %d %d\n",
+			fprintf(temp, "%d %s %s %d %d %d %d %d %d %d\n",
 				user->id,
 				user->username,
 				user->password,
@@ -172,10 +174,11 @@ bool saveUserSettings(const USER* user) {
 				(int)user->game_settings.display_mode,
 				(int)user->game_settings.resolution,
 				(int)user->game_settings.frame_rate_limit,
-				(int)user->game_settings.difficulty);
+				(int)user->game_settings.difficulty,
+				(int)user->sort_order);
 		}
 		else {
-			fprintf(temp, "%d %s %s %d %d %d %d %d %d\n", id, file_username, file_password, volume, graphics, display_mode, resolution, frl, difficulty);
+			fprintf(temp, "%d %s %s %d %d %d %d %d %d %d\n", id, file_username, file_password, volume, graphics, display_mode, resolution, frl, difficulty, sort_order);
 		}
 	}
 
@@ -201,9 +204,9 @@ static bool loadUser(USER* user, const char* username) {
 
 	char file_username[20];
 	char file_password[20];
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 
-	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 		if (strcmp(file_username, username) == 0) {
 			user->username = malloc(strlen(file_username) + 1);
 
@@ -232,6 +235,7 @@ static bool loadUser(USER* user, const char* username) {
 			user->game_settings.resolution = (RESOLUTION)resolution;
 			user->game_settings.frame_rate_limit = (FRL)frl;
 			user->game_settings.difficulty = (DIFFICULTY)difficulty;
+			user->sort_order = (SORT_ORDER)sort_order;
 
 			fclose(file);
 			return true;
@@ -260,6 +264,7 @@ int loginUser(USER* user) {
 	scanf("%19s", entered_password);
 
 	if (user_found && strcmp(user->password, entered_password) == 0) {
+		current_sort = user->sort_order;
 		printf("Welcome!\n");
 		return 1;
 	}
@@ -324,15 +329,15 @@ static void listUsers(void) {
 	FILE* file = fopen(USER_FILE, "r");
 
 	if (!file) {
-		printf("Could not open user file.\n");
+		perror("fopen");
 		return;
 	}
 
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 	char file_username[20], file_password[20];
 	int count = 0;
 
-	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 		count++;
 	}
 
@@ -353,7 +358,7 @@ static void listUsers(void) {
 	rewind(file);
 	int i = 0;
 
-	while (i < count && fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &entries[i].id, entries[i].username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+	while (i < count && fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &entries[i].id, entries[i].username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 		i++;
 	}
 
@@ -370,14 +375,144 @@ static void listUsers(void) {
 	free(entries);
 }
 
+// BINARY SEARCH (recursion)
+static int binarySearchById(ENTRY* entries, int left, int right, int target_id) {
+	if (left > right) {
+		return -1;
+	}
+
+	int mid = left + (right - left) / 2;
+
+	if (entries[mid].id == target_id) {
+		return mid;
+	}
+
+	if (entries[mid].id < target_id) {
+		return binarySearchById(entries, mid + 1, right, target_id);
+	}
+	else {
+		return binarySearchById(entries, left, mid - 1, target_id);
+	}
+}
+
+// SEARCH USERS
+static void searchUsers(void) {
+	int search_choice;
+
+	while (1) {
+		printf("\nSEARCH USERS\n");
+		printf("1. Search By ID\n");
+		printf("2. Search By Username\n");
+		printf("3. Go Back\n");
+		printf("Choose: ");
+
+		if (scanf("%d", &search_choice) != 1) {
+			printf("Enter a valid number.\n");
+			clearBuffer();
+			continue;
+		}
+
+		if (search_choice == 3) {
+			break;
+		}
+
+		if (search_choice != 1 && search_choice != 2) {
+			printf("Enter a valid number.\n");
+			continue;
+		}
+
+		FILE* file = fopen(USER_FILE, "r");
+
+		if (!file) {
+			perror("fopen");
+			break;
+		}
+
+		int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
+		char file_username[20], file_password[20];
+		int count = 0;
+
+		while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
+			count++;
+		}
+
+		if (count == 0) {
+			printf("No users found.\n");
+			fclose(file);
+			continue;
+		}
+
+		ENTRY* entries = malloc(count * sizeof(ENTRY));
+
+		if (!entries) {
+			printf("Memory allocation failed.\n");
+			fclose(file);
+			continue;
+		}
+
+		rewind(file);
+		int i = 0;
+
+		while (i < count && fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &entries[i].id, entries[i].username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
+			i++;
+		}
+
+		fclose(file);
+
+		if (search_choice == 1) {
+			int search_id;
+			printf("Enter ID: ");
+
+			if (scanf("%d", &search_id) != 1) {
+				printf("Enter a valid number.\n");
+				clearBuffer();
+				free(entries);
+				continue;
+			}
+
+			qsort(entries, count, sizeof(ENTRY), compareById);
+
+			int result = binarySearchById(entries, 0, count - 1, search_id);
+
+			if (result != -1) {
+				printf("\nID: %d | Username: %s\n", entries[result].id, entries[result].username);
+			}
+			else {
+				printf("No users found.\n");
+			}
+		}
+		else {
+			char search_username[20];
+			printf("Enter Username: ");
+			scanf("%19s", search_username);
+
+			bool found = false;
+
+			for (int a = 0; a < count; a++) {
+				if (strcmp(entries[a].username, search_username) == 0) {
+					printf("\nID: %d | Username: %s\n", entries[a].id, entries[a].username);
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				printf("No users found.\n");
+			}
+		}
+
+		free(entries);
+	}
+}
+
 // SORT USERS
 void sortUsers(void) {
 	int sort_choice;
 
 	while (1) {
 		printf("\nSORT USERS\n");
-		printf("1. Sort by ID\n");
-		printf("2. Sort by username\n");
+		printf("1. Sort By ID\n");
+		printf("2. Sort By Username\n");
 		printf("3. Go Back\n");
 		printf("Choose: ");
 
@@ -389,11 +524,15 @@ void sortUsers(void) {
 
 		if (sort_choice == 1) {
 			current_sort = SORT_BY_ID;
+			player.sort_order = SORT_BY_ID;
+			saveUserSettings(&player);
 			printf("Successfully sorted by ID.\n");
 			break;
 		}
 		else if (sort_choice == 2) {
 			current_sort = SORT_BY_USERNAME;
+			player.sort_order = SORT_BY_USERNAME;
+			saveUserSettings(&player);
 			printf("Successfully sorted by username.\n");
 			break;
 		}
@@ -413,7 +552,7 @@ static bool deleteUser(void) {
 	char delete_choice[10];
 	char file_username[20];
 	char file_password[20];
-	int id, volume, graphics, display_mode, resolution, frl, difficulty;
+	int id, volume, graphics, display_mode, resolution, frl, difficulty, sort_order;
 
 	printf("\nDELETE USER\n");
 
@@ -436,13 +575,13 @@ static bool deleteUser(void) {
 		FILE* file = fopen(USER_FILE, "r");
 
 		if (!file) {
-			printf("Could not open user file.\n");
+			perror("fopen");
 			return false;
 		}
 
 		bool found = false;
 
-		while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+		while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 			if (strcmp(file_username, entered_username) == 0 && strcmp(file_password, entered_password) == 0) {
 				found = true;
 				break;
@@ -466,7 +605,7 @@ static bool deleteUser(void) {
 		file = fopen(USER_FILE, "r");
 
 		if (!file) {
-			printf("Could not open user file.\n");
+			perror("fopen");
 			return false;
 		}
 
@@ -474,16 +613,16 @@ static bool deleteUser(void) {
 
 		if (!temp) {
 			fclose(file);
-			printf("Could not open temp file.\n");
+			perror("fopen");
 			return false;
 		}
 
-		while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty) == 9) {
+		while (fscanf(file, "%d%19s%19s%d%d%d%d%d%d%d", &id, file_username, file_password, &volume, &graphics, &display_mode, &resolution, &frl, &difficulty, &sort_order) == 10) {
 			if (strcmp(file_username, entered_username) == 0) {
 				continue;
 			}
 
-			fprintf(temp, "%d %s %s %d %d %d %d %d %d\n", id, file_username, file_password, volume, graphics, display_mode, resolution, frl, difficulty);
+			fprintf(temp, "%d %s %s %d %d %d %d %d %d %d\n", id, file_username, file_password, volume, graphics, display_mode, resolution, frl, difficulty, sort_order);
 		}
 
 		fclose(file);
@@ -532,7 +671,7 @@ bool userSettingsMenu(void) {
 			break;
 		}
 		case 2: {
-			printf("\nSEARCH USERS\n");
+			searchUsers();
 			break;
 		}
 		case 3: {
