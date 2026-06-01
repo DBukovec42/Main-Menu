@@ -595,7 +595,7 @@ static bool deleteUser(void) {
 		fclose(file);
 
 		if (!found) {
-			printf("Incorrect username or password.\n");
+			printf("Incorrect password.\n");
 			continue;
 		}
 
